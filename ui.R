@@ -10,14 +10,20 @@ shinyUI(fluidPage(
   # Application title
   titlePanel("CDC Weekly Case Count"), 
  
-  #sidebar which houses all user interface elements
+  #The shiny app is made up of two columns: the first column houses all of the user interface,
+  #including disease name selection, location type, location name, and plot options.  
     column(4, wellPanel(
       
-      #a drop down menu to choose the disease name of interest
-      selectInput('disease_name', 'Disease Name', as.character(levels(disease_names$x)), selected="Hepatitis B, Acute"),
+      # A drop down menu to choose the disease name of interest.  
+      # Reads in disease names from disease_names.txt.  Can choose which name to default to.  
+      selectInput('disease_name', 'Disease Name', as.character(levels(disease_names$x)), selected="Salmonellosis"),
+    
+      #A line break to make the interface clearer 
       br(),
       
-      # a row with two columns: one to choose the plot type, and one to choose from a few display options
+      # A row with two columns: one to choose the location type, and one to choose from a few display options.
+      # uiOutput("frees") creates a checkbox for whether the y-axis scale should be the same for all plots
+      # This checkbox only appears for certain location type selections, and is defined in the server.R file. 
       fluidRow(
         column(7,radioButtons("locty", "Location Type",
                    c("State" = "state",
@@ -25,13 +31,21 @@ shinyUI(fluidPage(
                    "All states within a region"="stregion",
                    "All regions"="aregion",
                    "Country" = "country"), selected="aregion")),
-        column(5,checkboxInput('alert_line', 'Include alert thresholds'),checkboxInput('cumulative', 'Cumulative counts'),uiOutput("frees"))
+        column(5,checkboxInput('alert_line', 'Include alert thresholds'),
+               checkboxInput('cumulative', 'Cumulative counts'),
+               uiOutput("frees"))
       ),
       
-      #a drop down menu to choose location.  menu will be populated based on which location type was chosen.
+      # A drop down menu to choose location.  The menu will be populated based on which location type was chosen.
+      # The checkbox is defined in the server.R file
       uiOutput("location")
-    )),
+    ),
+    
+    # Information about data collection.
+    "Please visit", 
+    a("this site", href="http://wwwn.cdc.gov/nndss/document/ProvisionalNationaNotifiableDiseasesSurveillanceData20100927.pdf"),
+    "for more information on how the data was collected.  All data is provisional."),
   
-    #plot
+    # The second column houses the plot(s) of the data that was selected.  These plots are defined in the server.R file.
     column(8, plotOutput('plot1'))
 ))

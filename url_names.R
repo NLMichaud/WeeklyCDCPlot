@@ -1,9 +1,8 @@
-#First column of matrix is the display name for each disease - to be used in plots
-#Second column is name used by CDC in downloaded tables, so that disease data can be accessed by appending ..Current.week to the end 
-#Third column is specific url that the disease data can be located at.  
-#to include additional diseases, add a row the the matrix.
-
-setwd("/home/nick/Documents/PhD/Spring 15/mmwr scrape/MMWRPlot/")
+# First column of matrix is the display name for each disease - to be used in plots
+# Second column is name used by CDC in downloaded tables, so that disease data can be accessed by appending ..Current.week to the end 
+# Third column is specific url that the disease data can be located at.
+# Fourth column is the year of the data in the url.
+# To include additional diseases, add a row the the matrix.
 
 all <- matrix(c(
 c("Cryptosporidiosis","Cryptosporidiosis", "b36e-ru3r", "2014"),
@@ -37,7 +36,7 @@ c("Shiga toxin-producing E. coli (STEC)", "Shiga.toxin.producing.E..coli..STEC..
 )
 ,ncol=4, byrow=T)
 
-#name matrix columns and write to csv file
+#Name matrix columns and write to csv file
 URL_NAMES <- data.frame(display_name=all[,1],data_name=all[,2],url=all[,3],year=all[,4])
 write.table(URL_NAMES, file="urldat.txt", row.names=FALSE, col.names=TRUE)
 
