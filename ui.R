@@ -50,7 +50,7 @@ shinyUI(fluidPage(
     a("See the code", href="https://github.com/NLMichaud/WeeklyCDCPlot"),
     br(),
     br(),
-    "Any questions or comments can be sent to Nicholas Michaud: ",
+    "Any questions or comments can be sent to Nick Michaud: ",
     a("michaud@iastate.edu", href="mailto:michaud@iastate.edu")),
   
     # The second column houses the plot(s) of the data that was selected.  These plots are defined in the server.R file.
