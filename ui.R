@@ -44,7 +44,14 @@ shinyUI(fluidPage(
     # Information about data collection.
     "Please visit", 
     a("this site", href="http://wwwn.cdc.gov/nndss/document/ProvisionalNationaNotifiableDiseasesSurveillanceData20100927.pdf"),
-    "for more information on how the data was collected.  All data is provisional."),
+    "for more information on how the data were collected.  All data are provisional.",
+    br(),
+    br(),
+    a("See the code", href="https://github.com/NLMichaud/WeeklyCDCPlot"),
+    br(),
+    br(),
+    "Any questions or comments can be sent to Nicholas Michaud: ",
+    a("michaud@iastate.edu", href="mailto:michaud@iastate.edu")),
   
     # The second column houses the plot(s) of the data that was selected.  These plots are defined in the server.R file.
     column(8, plotOutput('plot1'))
