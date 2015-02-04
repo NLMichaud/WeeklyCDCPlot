@@ -32,7 +32,9 @@ c("Mumps", "Mumps", "d69q-iyrb","2015"),
 #c("Pneumonia and Influenza Mortality Reports by City/Region, 2014", "P.I..Total","qpap-3u8w"),
 #leave out pneumonia for now, format is too different
 c("Shiga toxin-producing E. coli (STEC)", "Shiga.toxin.producing.E..coli..STEC..", "52cr-rw4k","2014"),
-c("Shiga toxin-producing E. coli (STEC)", "Shiga.toxin.producing.E..coli..STEC..", "n3wf-wtep","2015")
+c("Shiga toxin-producing E. coli (STEC)", "Shiga.toxin.producing.E..coli..STEC..", "n3wf-wtep","2015"),
+c("P&I MORT", "P&I MORT", "qpap-3u8w", "2014"),
+c("P&I MORT", "P&I MORT", "7esm-uptm", "2015")
 )
 ,ncol=4, byrow=T)
 
