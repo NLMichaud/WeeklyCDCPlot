@@ -23,6 +23,8 @@ infreq <- read.table("infreq.txt", header=T)
 infreq$MMWR.year <- as.factor(infreq$MMWR.year)
 infreq$date <- as.Date(infreq$date, format="%m/%d/%Y")
 
+
+
 shinyServer(function(input, output) {
 
   # The first reactive element of the UI is a drop down menu which filters locations based on whether
@@ -43,7 +45,8 @@ shinyServer(function(input, output) {
     switch(input$loctyP,
            "city" =     return(selectInput('location_nameP', 'City Name',sort(filter(pi_names, type=="city")$location))),
            "ctregion" =  return(selectInput('location_nameP', 'Region Name', sort(filter(pi_names, type=="region")$location))),
-           "regionP" =  return(selectInput('location_nameP', 'Region Name', sort(filter(pi_names, type=="region")$location)))
+           "regionP" =  return(selectInput('location_nameP', 'Region Name', sort(filter(pi_names, type=="region")$location))),
+           "stateP" =  return(selectInput('location_nameP', 'State Name', sort(unique(filter(pi_names, type=="city")$state))))
     )
   })
   
@@ -52,14 +55,14 @@ shinyServer(function(input, output) {
   # This element only shows up if multiple plots are being shown.
   output$frees <- renderUI({
     if(input$locty=="stregion"||input$locty=="aregion"){
-      return(checkboxInput('fixed_scales','Force same scale for y-axis', value=T))
+      return(checkboxInput('fixed_scales','Force same scale for y-axis', value=F))
     }
      return()
   })
   
   output$freesP <- renderUI({
     if(input$loctyP=="ctregion"||input$loctyP=="aregionP"){
-      return(checkboxInput('fixed_scalesP','Force same scale for y-axis', value=T))
+      return(checkboxInput('fixed_scalesP','Force same scale for y-axis', value=F))
     }
     return()
   })
@@ -85,9 +88,12 @@ shinyServer(function(input, output) {
   
   selectedDataP <- reactive({
     if(input$loctyP=="aregionP") return(filter(cdcdata, display_name == "P&I MORT", Reporting.Area %in% pi_names$location[which(pi_names$type=="region")]))
-    if(input$loctyP=="countryP") return(filter(cdcdata, display_name=="P&I MORT", Reporting.Area == "Total"))
+    if(input$loctyP=="totalP") return(filter(cdcdata, display_name=="P&I MORT", Reporting.Area == "Total"))
     if(is.null(input$location_nameP))return()
     if(input$loctyP=="city"||input$loctyP=="regionP") return(filter(cdcdata, display_name == "P&I MORT", Reporting.Area == input$location_nameP))
+    if(input$loctyP=="stateP"){
+      if(!(input$location_nameP %in% pi_names$state)){return()}
+      return(filter(cdcdata, display_name == "P&I MORT", Reporting.Area %in% pi_names$location[pi_names$state==input$location_nameP]))}
     if(input$loctyP=="ctregion"){
       if(!(input$location_nameP %in% pi_names$region)){return()}
       return(filter(cdcdata, display_name == "P&I MORT", Reporting.Area %in% pi_names$location[pi_names$region==input$location_nameP]))}
@@ -105,44 +111,32 @@ shinyServer(function(input, output) {
                       aesthetics2 = aes(x=date, y=fourteenwk.thresh)},
           "weeky"  =  {aesthetics1 = aes(x=MMWR.Week, y=c, group=MMWR.Year, colour=MMWR.Year)
                        aesthetics2 = aes(x=MMWR.Week, y=fourteenwk.thresh,colour=MMWR.Year)} ,
-          "cumuy" =   {aesthetics1 = aes(x=MMWR.Week, y=cumulate, group=MMWR.Year, colour=MMWR.Year)
-                       aesthetics2 = aes(x=MMWR.Week, y=cumu14,colour=MMWR.Year)}
+          "cumu"  =  {aesthetics1 = aes(x=date, y=cumulate)
+                      aesthetics2 = aes(x=date, y=cumu14)} ,
+          "cumuy" =   {aesthetics1 = aes(x=MMWR.Week, y=ycumulate, group=MMWR.Year, colour=MMWR.Year)
+                       aesthetics2 = aes(x=MMWR.Week, y=ycumu14,colour=MMWR.Year)}
     )
    
     # Create the main ggplot
     p <- ggplot(selectedData(), aesthetics1)+geom_line(stat="identity",position="identity",size=1)+
-                ylab("Number Reported")+scale_color_brewer(palette="Set1",name="Weekly case counts")
+         ylab("Number Reported")+scale_color_brewer(palette="Set2",name="Weekly case counts")+
+         ggtitle(paste("MMWR",input$disease_name, "Reports for 2014 & 2015"))
     
-    if(input$plotty=="week") p <- p + scale_x_date(breaks = "3 month", minor_breaks = "1 month", labels=date_format("%m/%Y"))+xlab("Date")
+    if(input$plotty=="week"||input$plotty=="cumu") p <- p + scale_x_date(breaks = "3 month", minor_breaks = "1 month", labels=date_format("%m/%Y"))+xlab("Date")
 
-    
-    # For state, region, or country location types, only a single plot will be displayed
-    if(input$locty=="state"||input$locty=="region"||input$locty=="country"){
-      
-      # If the alert threshold box was checked, include a line on the plots.  Otherwise, plot with no line.
-      if(input$alert_line){
-        return(p+geom_line(aesthetics2, linetype="dashed")+
-               geom_point(data=subset(selectedData(),fourteenwk.alert == T),colour="green")+
-               ggtitle(paste("MMWR",input$disease_name, "Reports for", input$location_name, "2014 & 2015")))
-      }
-      if(!input$alert_line){
-        return(p+ggtitle(paste("MMWR",input$disease_name, "Reports for", input$location_name, "2014 & 2015"))) 
-      }
+    # If the alert threshold box was checked, include a line on the plots.  Otherwise, plot with no line.
+    if(input$alert_line){
+      p <- p +  geom_point(data=subset(selectedData(),fourteenwk.alert == T),colour='RED')
+      if(input$plotty=="week"||input$plotty=="cumu") p <- p+geom_line( mapping=aesthetics2, linetype="dashed", colour='RED')
+      if(input$plotty=="weeky"||input$plotty=="cumuy") p <- p+geom_line( mapping=aesthetics2, linetype="dashed")
     }
+    
+    if(input$locty=="state"||input$locty=="region"||input$locty=="country") return(p)
+    
     if(is.null(input$fixed_scales)){return()}
+    if(input$fixed_scales==F) scaletype="free"
     
-    # For states within a region or all region location types, the plot will be faceted.  
-    # First check to see whether the user has chosen fixed or free scales, then create plots.
-    if(input$fixed_scales==F) {scaletype = "free"}
-    if(input$locty=="stregion"||input$locty=="aregion"){
-      if(input$alert_line){
-        return(p+facet_wrap(~ Reporting.Area, scales=scaletype)+geom_line(aesthetics2, linetype="dashed")+
-               geom_point(data=subset(selectedData(),fourteenwk.alert == T),colour="green")) 
-      }
-      if(!input$alert_line){
-        return(p+facet_wrap(~ Reporting.Area, scales=scaletype)) 
-      }
-    }
+    return(p + facet_wrap(~ Reporting.Area, scales=scaletype))
   })
 
 
@@ -156,76 +150,66 @@ output$plot2 <- renderPlot({
                      aesthetics2 = aes(x=date, y=threshold)},
          "weeky"  =  {aesthetics1 = aes(x=MMWR.week, y=c, group=MMWR.year, colour=MMWR.year)
                       aesthetics2 = aes(x=MMWR.week, y=threshold,colour=MMWR.year)} ,
-         "cumuy" =   {aesthetics1 = aes(x=MMWR.week, y=cumulate, group=MMWR.year, colour=MMWR.year)
-                      aesthetics2 = aes(x=MMWR.week, y=cumu14,colour=MMWR.year)}
+         "cumu"  =  {aesthetics1 = aes(x=date, y=cumulate)
+                     aesthetics2 = aes(x=date, y=cumu14)} ,
+         "cumuy" =   {aesthetics1 = aes(x=MMWR.week, y=ycumulate, group=MMWR.year, colour=MMWR.year)
+                      aesthetics2 = aes(x=MMWR.week, y=ycumu14,colour=MMWR.year)}
   )
   
   # Create the main ggplot
   p <- ggplot(selectedDataI(), aesthetics1)+geom_line(stat="identity",position="identity",size=1)+
-    ylab("Number Reported")+scale_color_brewer(palette="Set1",name="Weekly case counts")
+    ylab("Number Reported")+scale_color_brewer(palette="Set2",name="Weekly case counts")+
+    ggtitle(paste("MMWR",input$inf_name, "Reports for 2014 & 2015"))
   
-  if(input$plottyI=="week") p <- p + scale_x_date(breaks = "3 month", minor_breaks = "1 month", labels=date_format("%m/%Y"))+xlab("Date")
+  if(input$plottyI=="week"||input$plottyI=="cumu") p <- p + scale_x_date(breaks = "3 month", minor_breaks = "1 month", labels=date_format("%m/%Y"))+xlab("Date")
   
-    
     # If the alert threshold box was checked, include a line on the plots.  Otherwise, plot with no line.
     if(input$alert_lineI){
-      return(p+geom_line(aesthetics2, linetype="dashed")+
-               geom_point(data=subset(selectedDataI(),alert == "Y"),colour="green")+
-               ggtitle(paste("MMWR",input$inf_name, "Reports for 2014 & 2015")))
+      p <- p+  geom_point(data=subset(selectedDataI(),alert == T),colour='RED')
+      if(input$plottyI=="week"||input$plottyI=="cumu") p <- p+geom_line( mapping=aesthetics2, linetype="dashed", colour='RED')
+      if(input$plottyI=="weeky"||input$plottyI=="cumuy") p <- p+geom_line( mapping=aesthetics2, linetype="dashed")
     }
-    if(!input$alert_lineI){
-      return(p+ggtitle(paste("MMWR",input$inf_name, "Reports for 2014 & 2015"))) 
-    }
-  })
+  
+  return(p)
+   })
 
 output$plot3 <- renderPlot({
-  if(is.null(input$loctyP)||is.null(selectedDataP()))return()    
-  scaletype = "fixed"
-  
-  # Depending on whether the "Cumulative" checkbox is checked, set plot aesthetics to either weekly or cumulative counts
-  switch(input$plottyP,
-         "week"  =  {aesthetics1 = aes(x=date, y=c)
-                     aesthetics2 = aes(x=date, y=fourteenwk.thresh, colour='RED')},
-         "weeky"  =  {aesthetics1 = aes(x=MMWR.Week, y=c, group=MMWR.Year, colour=MMWR.Year)
-                      aesthetics2 = aes(x=MMWR.Week, y=fourteenwk.thresh,colour=MMWR.Year)} ,
-         "cumuy" =   {aesthetics1 = aes(x=MMWR.Week, y=cumulate, group=MMWR.Year, colour=MMWR.Year)
-                      aesthetics2 = aes(x=MMWR.Week, y=cumu14,colour=MMWR.Year)}
-  )
-  
-  # Create the main ggplot
-  p <- ggplot(selectedDataP(), aesthetics1)+geom_line(stat="identity",position="identity",size=1)+
-    ylab("Number Reported")+scale_color_brewer(palette="Set1",name="Weekly case counts")
- 
-  if(input$plottyP=="week") p <- p + scale_x_date(breaks = "3 month", minor_breaks = "1 month", labels=date_format("%m/%Y"))+xlab("Date")
-  
-  
-  # For city, region, or country location types, only a single plot will be displayed
-  if(input$loctyP=="city"||input$loctyP=="regionP"||input$loctyP=="countryP"){
+    if(is.null(input$loctyP)||is.null(selectedDataP()))return()    
+    scaletype = "fixed"
+    
+    # Depending on whether the "Cumulative" checkbox is checked, set plot aesthetics to either weekly or cumulative counts
+    switch(input$plottyP,
+           "week"  =  {aesthetics1 = aes(x=date, y=c)
+                       aesthetics2 = aes(x=date, y=fourteenwk.thresh)},
+           "weeky"  =  {aesthetics1 = aes(x=MMWR.Week, y=c, group=MMWR.Year, colour=MMWR.Year)
+                        aesthetics2 = aes(x=MMWR.Week, y=fourteenwk.thresh,colour=MMWR.Year)} ,
+           "cumu"  =  {aesthetics1 = aes(x=date, y=cumulate)
+                       aesthetics2 = aes(x=date, y=cumu14)} ,
+           "cumuy" =   {aesthetics1 = aes(x=MMWR.Week, y=ycumulate, group=MMWR.Year, colour=MMWR.Year)
+                        aesthetics2 = aes(x=MMWR.Week, y=ycumu14,colour=MMWR.Year)}
+    )
+    
+    # Create the main ggplot
+    p <- ggplot(selectedDataP(), aesthetics1)+geom_line(stat="identity",position="identity",size=1)+
+      ylab("Number Reported")+scale_color_brewer(palette="Set2",name="Weekly case counts")+
+      ggtitle(paste("MMWR P&I Mortality Reports for 2014 & 2015"))
+    
+    if(input$plottyP=="week"||input$plottyP=="cumu") p <- p + scale_x_date(breaks = "3 month", minor_breaks = "1 month", labels=date_format("%m/%Y"))+xlab("Date")
     
     # If the alert threshold box was checked, include a line on the plots.  Otherwise, plot with no line.
     if(input$alert_lineP){
-      return(p+geom_line(aesthetics2, linetype="dashed")+
-               geom_point(data=subset(selectedDataP(),fourteenwk.alert == T),colour="green")+
-               ggtitle(paste("MMWR P&I Mortality Reports for", input$location_name, "2014 & 2015")))
+      p <- p+  geom_point(data=subset(selectedDataP(),fourteenwk.alert == T),colour='RED')
+      if(input$plottyP=="week"||input$plottyP=="cumu") p <- p+geom_line( mapping=aesthetics2, linetype="dashed", colour='RED')
+      if(input$plottyP=="weeky"||input$plottyP=="cumuy") p <- p+geom_line( mapping=aesthetics2, linetype="dashed")
     }
-    if(!input$alert_lineP){
-      return(p+ggtitle(paste("MMWR P&I Mortality Reports for", input$location_name, "2014 & 2015"))) 
-    }
-  }
-  if(is.null(input$fixed_scalesP)){return()}
-  
-  # For states within a region or all region location types, the plot will be faceted.  
-  # First check to see whether the user has chosen fixed or free scales, then create plots.
-  if(input$fixed_scalesP==F) {scaletype = "free"}
-  if(input$loctyP=="ctregion"||input$loctyP=="aregionP"){
-    if(input$alert_lineP){
-      return(p+facet_wrap(~ Reporting.Area, scales=scaletype)+geom_line(aesthetics2, linetype="dashed")+
-               geom_point(data=subset(selectedDataP(),fourteenwk.alert == T),colour="green")) 
-    }
-    if(!input$alert_lineP){
-      return(p+facet_wrap(~ Reporting.Area, scales=scaletype)) 
-    }
-}})
+    
+    if(input$loctyP=="state"||input$loctyP=="region"||input$loctyP=="country") return(p)
+    
+    if(is.null(input$fixed_scalesP)){return()}
+    if(input$fixed_scalesP==F) scaletype="free"
+    
+    return(p + facet_wrap(~ Reporting.Area, scales=scaletype))
+  })
 })
 
 

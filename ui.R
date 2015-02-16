@@ -1,8 +1,9 @@
 #ideas: navbar so we can have a separate page for uncommon disease plots and for p&i data
 library(shiny)
-
+library(dplyr)
 #read in disease and location name data
 disease_names <- read.table("disease_names.txt", header=T)
+disease_names <- droplevels(filter(disease_names, x!="P&I MORT"))
 infrequent <- read.table("inf_dis.txt", header=T)
 
 
@@ -38,6 +39,7 @@ shinyUI(navbarPage("CDC Data Visualization",
         column(5, radioButtons("plotty", "Plot Type",
                                c("Weekly data" = "week",
                                  "Weekly data by year" = "weeky",
+                                 "Cumulative data" = "cumu",
                                  "Cumulative data by year" = "cumuy"), selected="week"))
       ),
       
@@ -46,7 +48,7 @@ shinyUI(navbarPage("CDC Data Visualization",
       # This checkbox only appears for certain location type selections, and is defined in the server.R file. 
       fluidRow(
         h5(strong('Plot Options')),
-        checkboxInput('alert_line', 'Include alert thresholds'),
+        checkboxInput('alert_line', 'Include alert thresholds (experimental)'),
         uiOutput("frees")
       ))
     ),
@@ -66,22 +68,23 @@ shinyUI(navbarPage("CDC Data Visualization",
            radioButtons("plottyI", "Plot Type",
                                   c("Weekly data" = "week",
                                     "Weekly data by year" = "weeky",
+                                    "Cumulative data" = "cumu",
                                     "Cumulative data by year" = "cumuy"), selected="week"),
          
            #A line break to make the interface clearer 
            br(),
            fluidRow(
              h5(strong('Plot Options')),
-             checkboxInput('alert_lineI', 'Include alert thresholds')
+             checkboxInput('alert_lineI', 'Include alert thresholds (experimental)')
            ))
          ),
          
          column(8, plotOutput('plot2'))
   ),
   
-  tabPanel("CDC Pertussis and Measles Mortality",
+  tabPanel("CDC Pneumonia and Influenza Mortality",
          
-         titlePanel("Pertussis and Measles mortality"),
+         titlePanel("CDC Weekly Pneumonia and Influenza mortality"),
          column(4, wellPanel( 
            # A row with two columns: one to choose the location type, and one to choose from a few display options.
            # uiOutput("frees") creates a checkbox for whether the y-axis scale should be the same for all plots
@@ -92,18 +95,20 @@ shinyUI(navbarPage("CDC Data Visualization",
                     column(7,radioButtons("loctyP", "Location Type",
                                          c("City" = "city",
                                            "Single region" = "regionP",
+                                           "All cities within a state" = "stateP",
                                            "All cities within a region"="ctregion",
                                            "All regions"="aregionP",
-                                           "Country" = "countryP"), selected="aregionP")),
+                                           "Total" = "totalP"), selected="aregionP")),
                     column(5, radioButtons("plottyP", "Plot Type",
                                          c("Weekly data" = "week",
                                            "Weekly data by year" = "weeky",
+                                           "Cumulative data" = "cumu",
                                            "Cumulative data by year" = "cumuy"), selected="week"))
            ),
            
            fluidRow(
                     h5(strong('Plot Options')),
-                    checkboxInput('alert_lineP', 'Include alert thresholds'),
+                    checkboxInput('alert_lineP', 'Include alert thresholds (experimental)'),
                     uiOutput("freesP")
            ))
       ),
@@ -111,8 +116,8 @@ shinyUI(navbarPage("CDC Data Visualization",
          column(8, plotOutput('plot3'))
   ),
   
-  tabPanel("Data Information",   # Information about data collection.
-           "Data are updated weekly on Sunday at 12:00 CT.",
+  tabPanel("More Information",   # Information about data collection.
+           "Data are updated weekly on Thursday at 20:00 CT.",
            br(),
            br(),
            "Please visit", 
@@ -123,7 +128,12 @@ shinyUI(navbarPage("CDC Data Visualization",
            a("See the code", href="https://github.com/NLMichaud/WeeklyCDCPlot"),
            br(),
            br(),
-           "Any questions or comments can be sent to Nick Michaud: ",
+           "Any questions or comments can be sent to",
+           br(),
+           "Aaron Kite-Powell: " ,
+           a("akitepowell@gmail.com", href="mailto:akitepowell@gmail.com"),
+           br(),
+           "Nick Michaud: ",
            a("michaud@iastate.edu", href="mailto:michaud@iastate.edu"))
            
   )
