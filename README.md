@@ -3,7 +3,7 @@ Contains R files for making a Shiny app which displays CDC data by state and dis
 
 -url_names.R creates urldat.csv, which contains the names of each disease of interest, and the url location for the data of that disease
 
--CDCscrape.R uses the urldat.csv to scrape the data from the CDC website, and creates three .csv files:
+-old_new_merge.R uses the urldat.csv to scrape the data from the CDC website, and creates three .csv files:
     - plotdat.csv, which is the disease data scraped from the CDC
     -location_names.csv, which is a file with the names of all locations we have data for, and the type of each location (state, region, country)
     -disease_names.csv, which is a file with the names of all diseases we have data for
