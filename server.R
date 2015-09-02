@@ -262,7 +262,7 @@ shinyServer(function(input, output, session) {
     if(input$locty%in% c("stregion", "aregion"))
       tableDat <- filter(tableDat, Reporting.Area == storeClick$clickLocation)
     tableDat <- tableDat[,c(13,4)]
-    tableDat$rdate <- strftime(strptime(tableDat$rdate, format = "%F"), format = "%cd D")
+    tableDat$rdate <- strftime(strptime(tableDat$rdate, format = "%F"), format = "%D")
     #tableDat$lowAlert <- as.character(tableDat$lowAlert)
     #tableDat$highAlert <- as.character(tableDat$highAlert)
     table <- DT::datatable(tableDat, class = 'display', rownames=FALSE,
