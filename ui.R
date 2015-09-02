@@ -59,7 +59,10 @@ shinyUI(navbarPage("CDC Data Visualization",
                             
                             
                             # The second column houses the plot(s) of the data that was selected.  These plots are defined in the server.R file.
-                            column(8, plotOutput('plot1'))
+                            column(8, plotOutput('plot1', click = "plot1_click"), 
+                                      uiOutput("clicky"),
+                                     DT::dataTableOutput('countTable')
+                                  )
                    ),
                    
                    tabPanel("Inf. Reported Diseases",

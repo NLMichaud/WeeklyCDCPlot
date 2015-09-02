@@ -3,6 +3,7 @@ library(ggplot2)
 library(dplyr)
 library(scales)
 library(grid)
+library(DT)
 ## Sometimes as different options are chosen, Shiny tries to create a plot without first reading in new user input, 
 ## which can cause ggplot to throw an error.  For that reason, there's a lot of code like if(is.null(input$locty)) return()
 ## This code checks to see if the correct input has been read yet, and if not, it prevents ggplot from trying to plot anything. 
@@ -31,7 +32,7 @@ datetrans <- read.table("week.csv", header=T, sep=",")
 
 shinyServer(function(input, output, session) {
 
-  # The first reactive element of the UI is a drop down menu which filters locations based on whether
+  # The first reactive elements of the UI are drop down menus which filters locations based on whether
   # the user has selected states, regions, states in regions, or country
   # if "all regions" is selected, no location choices are displayed
   output$location <- renderUI({     
@@ -43,7 +44,6 @@ shinyServer(function(input, output, session) {
            "country" =  return(selectInput('location_name', 'Country Name',sort(filter(location_names, type=="country")$location)))
       )
     })
-    
   
   output$locationP <- renderUI({     
     if(is.null(input$loctyP))return()
@@ -73,8 +73,36 @@ shinyServer(function(input, output, session) {
     return()
   })
   
-
+  ##  structures for storing click values
+  storeClick <- reactiveValues(
+    clickLocation = NA   
+  )
   
+  observeEvent(input$plot1_click, {
+    if(!is.null(input$plot1_click$panelvar1)){
+      storeClick$clickLocation <- input$plot1_click$panelvar1[1]
+    }
+  })
+  
+  observeEvent(input$locty, {
+    storeClick$clickLocation <- NA
+  })
+  
+  output$clicky <- renderUI({     
+    if(is.null(input$locty))return()
+    if(is.na(storeClick$clickLocation)){
+      switch(input$locty,
+             "state" =   return(),
+             "region" = return(),
+             "stregion" =  return(h5(strong("Click on a state's plot to see data for that state"))),
+             "aregion" =  return(h5(strong("Click on a region's plot to see data for that region"))),
+             "country" =  return()
+      )
+    }
+    else{
+      return(h5(paste(input$disease_name, " data for ", storeClick$clickLocation)))
+    }
+  })
   
   observe({
     x <- input$disease_name
@@ -226,6 +254,28 @@ shinyServer(function(input, output, session) {
     return(p + facet_wrap(~ Reporting.Area, scales=scaletype))
   })
 
+  
+  output$countTable = DT::renderDataTable({
+    if(is.null(selectedData())) return()
+    if(is.na(storeClick$clickLocation) & input$locty%in% c("stregion", "aregion")) return()
+    tableDat <- selectedData()
+    if(input$locty%in% c("stregion", "aregion"))
+      tableDat <- filter(tableDat, Reporting.Area == storeClick$clickLocation)
+    tableDat <- tableDat[,c(13,4)]
+    tableDat$rdate <- strftime(strptime(tableDat$rdate, format = "%F"), format = "%cd D")
+    #tableDat$lowAlert <- as.character(tableDat$lowAlert)
+    #tableDat$highAlert <- as.character(tableDat$highAlert)
+    table <- DT::datatable(tableDat, class = 'display', rownames=FALSE,
+                           colnames = c( 'Date', 'Count'),
+                           options = list(dom = 'tlipr',
+                                          pageLength = 5,
+                                          lengthMenu = c(5,10,20))) 
+      #formatDate(1, "toLocaleDateString")
+    
+    #formatStyle(table, columns = c(4,5), color = styleEqual(c("TRUE","FALSE"), c('red','normal'))) 
+  })
+  
+  
 })
 
 
