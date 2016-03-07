@@ -43,7 +43,8 @@ url_func <- function(url_data){
   
   nndss14 <-read.csv(textConnection(getURL(URL[1],ssl.verifypeer=FALSE)),strip.white=T,stringsAsFactors=F)
   nndss15 <- read.csv(textConnection(getURL(URL[2],ssl.verifypeer=FALSE)),strip.white=T,stringsAsFactors=F)
-    
+  nndss16 <- read.csv(textConnection(getURL(URL[3],ssl.verifypeer=FALSE)),strip.white=T,stringsAsFactors=F)
+  
   # Some diseases have a slightly different name for MMWR.Week and MMWR.Year, so we standardize the names here
   if("MMWRWeek"%in%names(nndss14)){nndss14<- dplyr::rename(nndss14,MMWR.Week=MMWRWeek )}
   if("MMWR.WEEK"%in%names(nndss14)){nndss14<- dplyr::rename(nndss14,MMWR.Week=MMWR.WEEK )}
@@ -53,6 +54,10 @@ url_func <- function(url_data){
   if("MMWR.WEEK"%in%names(nndss15)){nndss15<- dplyr::rename(nndss15, MMWR.Week=MMWR.WEEK  )}
   if("MMWRYear"%in%names(nndss15)){nndss15<- dplyr::rename(nndss15,  MMWR.Year=MMWRYear )}
   if("MMWR.YEAR"%in%names(nndss15)){nndss15<- dplyr::rename(nndss15,  MMWR.Year=MMWR.YEAR )}
+  if("MMWRWeek"%in%names(nndss16)){nndss16<- dplyr::rename(nndss16, MMWR.Week=MMWRWeek  )}
+  if("MMWR.WEEK"%in%names(nndss16)){nndss16<- dplyr::rename(nndss16, MMWR.Week=MMWR.WEEK  )}
+  if("MMWRYear"%in%names(nndss16)){nndss16<- dplyr::rename(nndss16,  MMWR.Year=MMWRYear )}
+  if("MMWR.YEAR"%in%names(nndss16)){nndss16<- dplyr::rename(nndss16,  MMWR.Year=MMWR.YEAR )}
 
   # dname is the name of the column in the nndss file which contains weekly data for the disease of interest
   dname <- c(paste(url_data$data_name[1],"..Current.week",sep=""))
@@ -62,7 +67,8 @@ url_func <- function(url_data){
  
   # Select relevant columns from both the 2014 and 2015 data and rbind them together
  nndss <- rbind(select(nndss14, contains(dname), contains("MMWR"), contains("Reporting"), -contains("flag")),
- select(nndss15, contains(dname), contains("MMWR"), contains("Reporting"), -contains("flag")))
+ select(nndss15, contains(dname), contains("MMWR"), contains("Reporting"), -contains("flag")),
+ select(nndss16, contains(dname), contains("MMWR"), contains("Reporting"), -contains("flag")))
 
  # set NA values to 0, maybe not a great idea, but useful for calculating thresholds and cumulative sums
  names(nndss)[which(dname==names(nndss))] <- "c"
@@ -111,9 +117,12 @@ datetrans <- read.table("week.csv", header=T, sep=",")
 
 betcdc$MMWR.Week[betcdc$MMWR.Week<10] <-  paste(0, dplyr::filter(betcdc, MMWR.Week<10)$MMWR.Week, sep="") 
 betcdc$tempdt <-  as.integer(paste(betcdc$MMWR.Year, betcdc$MMWR.Week, sep=""))
-betcdc$rdate <- unlist(sapply(betcdc$tempdt, function(x){return(as.character(datetrans[which(datetrans$Week==x),]$Date_Week, "%m/%d/%Y"))}, simplify=TRUE))
-betcdc$year <- year(as.Date(betcdc$rdate, format="%m/%d/%Y"))
-betcdc$week <- format(as.Date(betcdc$rdate, format="%m/%d/%Y"),"%m/%d")
+betcdc$rdate <- unlist(sapply(betcdc$tempdt, function(x){return(as.character(datetrans[which(datetrans$Week==x),]$Date_Week))}, simplify=TRUE))
+
+
+
+betcdc$year <- year(as.Date(betcdc$rdate))
+betcdc$week <- format(as.Date(betcdc$rdate),"%m/%d")
 
 write.table(betcdc, file="plotdat.txt", row.names=FALSE, col.names=TRUE)
 
@@ -153,6 +162,7 @@ pi_names <- unique(read.csv(textConnection(getURL(URL,ssl.verifypeer=FALSE)),str
 Encoding(pi_names) <- "latin1"
 pi_names <- iconv(pi_names, "latin1", "ASCII", sub="")
 pi_names[length(pi_names)]<-"Total"
+pi_names <- as.character(pi_names)
 loc_type <- rep("city", length(pi_names))
 loc_type[which(tolower(pi_names)%in%tolower(regions))] <- "region"
 loc_type[length(pi_names)]<-"total"
@@ -178,11 +188,16 @@ write.table(all_locs, file="pi_names.txt", row.names=FALSE, col.names=TRUE)
 
 #separate code for infrequent diseases.
 URL <- c("https://data.cdc.gov/api/views/wcwi-x3uk/rows.csv?accessType=DOWNLOAD",
-         "https://data.cdc.gov/api/views/pb4z-432k/rows.csv?accessType=DOWNLOAD") 
+         "https://data.cdc.gov/api/views/pb4z-432k/rows.csv?accessType=DOWNLOAD",
+         "https://data.cdc.gov/api/views/dwqk-w36f/rows.csv?accessType=DOWNLOAD"
+         ) 
 nndss14 <-read.csv(textConnection(getURL(URL[1],ssl.verifypeer=FALSE)),strip.white=T,stringsAsFactors=F)
 nndss15 <- read.csv(textConnection(getURL(URL[2],ssl.verifypeer=FALSE)),strip.white=T,stringsAsFactors=F)
+nndss16 <- read.csv(textConnection(getURL(URL[3],ssl.verifypeer=FALSE)),strip.white=T,stringsAsFactors=F)
+
 nndss <- rbind(select(nndss14, contains("Current.week"), contains("MMWR"), contains("Disease"), -contains("flag")),
-               select(nndss15,  contains("Current.week"),contains("MMWR"), contains("Disease"), -contains("flag")))
+               select(nndss15,  contains("Current.week"),contains("MMWR"), contains("Disease"), -contains("flag")),
+              select(nndss16,  contains("Current.week"),contains("MMWR"), contains("Disease"), -contains("flag")))
 
 
 #disease names are different bewteen years, try to clean some disease names up
@@ -210,7 +225,7 @@ d<-  group_by(d, Disease) %>% do(mutate(., threshold=newthresh(c,14),
 d <- group_by(d, Disease, MMWR.year) %>% do(mutate(., ycumulate=cumsum(c),
                                                                   ycumu14=ycumulate+(threshold-c)))
 #get dates
-d$date<- apply(d, 1,  getdate)
+d$date <- apply(d, 1,  getdate)
 
 #rename some diseases 
 d$Disease <- as.factor(d$Disease)

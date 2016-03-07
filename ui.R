@@ -67,11 +67,12 @@ shinyUI(navbarPage("CDC Data Visualization",
                             column(4, wellPanel( 
                               # A drop down menu to choose the disease name of interest.  
                               # Reads in disease names from disease_names.txt.  Can choose which name to default to.  
-                              selectInput('inf_name', 'Disease Name', as.character(levels(infrequent$x)), selected="Typhoid fever"),
+                              selectInput('inf_name', 'Disease Name', as.character(levels(infrequent$x)), selected="Typhoid fever"), 
+                              dateRangeInput('yearsInf','Choose date range', start= "2015-01-01", end=Sys.Date(), 
+                                             min = "2014-01-01", max=Sys.Date() ),
                               radioButtons("plottyI", "Plot Type",
                                            c("Weekly data" = "week",
                                              "Weekly data by year" = "weeky",
-                                             "Cumulative data" = "cumu",
                                              "Cumulative data by year" = "cumuy"), selected="week"),
                               
                               #A line break to make the interface clearer 
@@ -87,7 +88,7 @@ shinyUI(navbarPage("CDC Data Visualization",
                    
                    tabPanel("CDC Pneumonia and Influenza Mortality",
                             
-                            titlePanel("CDC Weekly Pneumonia and Influenza mortality"),
+                            titlePanel("CDC Weekly Pneumonia and Influenza Mortality"),
                             column(4, wellPanel( 
                               # A row with two columns: one to choose the location type, and one to choose from a few display options.
                               # uiOutput("frees") creates a checkbox for whether the y-axis scale should be the same for all plots
@@ -95,6 +96,8 @@ shinyUI(navbarPage("CDC Data Visualization",
                               uiOutput("locationP"),
                               
                               fluidRow(
+                                dateRangeInput('yearsPI','Choose date range', start= "2015-01-01", end=Sys.Date(), 
+                                               min = "2008-01-01", max=Sys.Date() ),
                                 column(7,radioButtons("loctyP", "Location Type",
                                                       c("City" = "city",
                                                         "Single region" = "regionP",
